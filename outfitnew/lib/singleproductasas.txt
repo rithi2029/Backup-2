@@ -1,0 +1,810 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:sampleproject/cart.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class SingleproductPage extends StatefulWidget {
+  //String productprice;
+  String productname, productimage, productlongdesc, producttype, productprice;
+  String productid;
+
+  @override
+  SingleproductPage({
+    this.productprice,
+    this.productimage,
+    this.productname,
+    this.productlongdesc,
+    this.productid,
+    this.producttype,
+  });
+  @override
+  _SingleproductPageState createState() => _SingleproductPageState();
+}
+
+class _SingleproductPageState extends State<SingleproductPage> {
+  final formKey = GlobalKey<FormState>();
+  bool _validate = false;
+  final scaffoldkey = GlobalKey<ScaffoldState>();
+
+  static const String imageURL = "https://w3cert.net/outfit/";
+  SharedPreferences sharedPreferences;
+  int len, len1, optionIndex, optionvalueIndex;
+  int qty = 1;
+  List dropDownValues = [];
+  //dynamic data = [];
+  dynamic data = "";
+  List drop_data = List();
+  //List<Map> options= [];
+  List data2 = List();
+
+  List data1 = List();
+
+  String _dropDownValue;
+  bool displayaddtocart = false;
+  // String _dropDownValue1;
+  // String dropdownValuecolor, dropdownValuesize;
+  String cart_id;
+  //dynamic data1;
+
+  List option_value1 = List();
+  dynamic option_value = [];
+  List selected_ddvalue = [];
+  int i;
+  int k;
+  var _value;
+  int t;
+  bool visibledropdown = false;
+  bool visibleflexdropdown = false;
+  var list = new List();
+  //List<Map> _myJson = [];
+  Map<String, dynamic> map;
+  // Map<String, dynamic> data3;
+  String msg = "";
+  checkproducttype() {
+    print(widget.producttype);
+
+    if (widget.producttype == 'simple') {
+
+      setState(() {
+        displayaddtocart = true;
+         getProduct();
+      });
+    } else if (widget.producttype == 'variable') {
+      setState(() {
+        displayaddtocart = true;
+         getProduct();
+      });
+    } else if (widget.producttype == 'configarable') {
+      setState(() {
+         getProduct();
+      });
+    } else if (widget.producttype == 'flexivariable') {
+      setState(() {
+         getProduct();
+      });
+    }
+  }
+
+  Future checkvarient() async {
+    print("inside check varient");
+    print("qty" + qty.toString());
+    print("pid" + widget.productid.toString());
+    print("select id");
+    print(dropDownValues.toString());
+    var quty = qty.toString();
+    var pid = widget.productid;
+
+    /*//"http://w3cert.net/outfit/index.php/en/?option=com_j2store&view=product&task=update&product_option%5B18%5D=1&product_option%5B19%5D=3&product_qty=1&product_id=26&option=com_j2store&ajax=1&cfe93d81c3fbe682d5e2f12acdaff1b6=1&product_id=26&_=160334299430");
+     used urll
+     http://w3cert.net/outfit/index.php/en/?option=com_j2store&view=product&task=update&product_option%5B18%5D=1&product_option%5B19%5D=3&product_qty=1&product_id=26&option=com_j2store&ajax=1&cfe93d81c3fbe682d5e2f12acdaff1b6=1&product_id=26&_=160334299430
+    http://w3cert.net/outfit/index.php/en/?option=com_j2store&view=product&task=update&product_option%5B18%5D=1&product_option%5B19%5D=3&product_qty=1&product_id=26&
+    option=com_j2store&ajax=0&69d0c9939ab00611f9fea18db32fcca2=1&product_id=26&_=1603430650166   
+     */
+    final response = await http.get(
+        "http://w3cert.net/outfit/index.php/en/?option=com_j2store&view=product&task=update&product_option[18]=1&product_option[19]=3&product_qty=$quty&product_id=$pid&option=com_j2store&ajax=1&cfe93d81c3fbe682d5e2f12acdaff1b6=1&product_id=$pid&_=160334299430");
+    if (response.statusCode == 200) {
+      print('response.body:' + response.body);
+      //print(object);
+      data = json.decode(response.body);
+      print(data);
+      var data1 = data['error'];
+      print(data1);
+      print("error" + data['error']);
+      // await Future.delayed(Duration(seconds: 2));
+      if (data1 == "Variant not available") {
+        print("inside if Variant not available");
+        setState(() {
+          msg = data['error'];
+          print("msg" + msg);
+        });
+      } else {
+        print("inside else");
+      }
+
+      //  return data;
+    } else {
+      // If that call was not successful, throw an error.
+      throw Exception('Failed to load post');
+    }
+  }
+
+  /*
+    http://w3cert.net/outfit/index.php/en/component/j2store/carts/addItem?Itemid=192
+    */
+
+  Future checkproducttypeinsertproduct() {
+    print("checkproducttypeinsertproduct");
+
+    if (widget.producttype == "flexivariable") {
+      print(widget.producttype);
+
+      insertflexivariableproduct(i);
+    } else if (widget.producttype == "variable") {
+      insertvariableproduct(i);
+    }
+/*  else if(widget.producttype == "configarable")
+{
+ 
+}*/
+    else if (widget.producttype == "simple") {
+      print(widget.producttype);
+      insertsimpleproduct();
+    }
+  }
+
+  Future<http.Request> getProduct() async {
+    print('Inside getProduct');
+
+    print(widget.productid);
+    final response = await http.get(
+        "http://w3cert.net/outfit/index.php/api/v1/product/${widget.productid}");
+    if (response.statusCode == 200) {
+      print('response.body:' + response.body);
+      this.setState(() {
+        data = json.decode(response.body);
+        //data1 = json.decode(response.body).cast<optionvalue>();
+      });
+
+      if (widget.producttype == "variable") {
+        map = json.decode(response.body);
+        for (k = 0; k < data['data']['product']['options'].length; k++) {
+          if (data['data']['product']['options'][k]['type'] == "select") {
+            print("type is select");
+            print(data['data']['product']['options'][k]['optionvalue'].length);
+            print(data['data']['product']['options'][k]['productoption_id']);
+            setState(() {
+              visibledropdown = true;
+              data2 = map['data']['product']['options'];
+              // options = map['data']['product'];
+              len1 =
+                  data['data']['product']['options'][k]['optionvalue'].length;
+              len = data['data']['product']['options'].length;
+              for (int i = 0; i < data2.length; i++) {
+                dropDownValues
+                    .add(data2[i]['optionvalue'][i]['product_optionvalue_id']);
+              }
+            });
+          } else {
+            print("other type");
+            setState(() {
+              visibledropdown = false;
+            });
+          }
+        }
+      } else if (widget.producttype == "flexivariable") {
+        print(" getting product inside else if flexivariable product");
+        //  if(widget.producttype=="flexivariable"){
+        print("product type" + widget.producttype);
+//} map = json.decode(response.body);
+        map = json.decode(response.body);
+        for (k = 0; k < data['data']['product']['options'].length; k++) {
+          if (data['data']['product']['options'][k]['type'] == "select") {
+            print("type is select");
+            print("Type" + data['data']['product']['options'][k]['type']);
+            print(data['data']['product']['options'][k]['optionvalue'].length);
+            print(data['data']['product']['options'][k]['productoption_id']);
+            setState(() {
+              // visibledropdown = true;
+              visibleflexdropdown = true;
+              data2 = map['data']['product']['options'];
+              // options = map['data']['product'];
+              len1 =
+                  data['data']['product']['options'][k]['optionvalue'].length;
+              len = data['data']['product']['options'].length;
+              for (int i = 0; i < data2.length; i++) {
+                dropDownValues
+                    .add(data2[i]['optionvalue'][i]['product_optionvalue_id']);
+              }
+            });
+          } else {
+            print("other type");
+            setState(() {
+              visibledropdown = false;
+            });
+          }
+        }
+      } else {
+        print("check product type inside else simple product");
+
+        print("product type" + widget.producttype);
+
+        setState(() {
+          visibledropdown = false;
+        });
+      }
+    } else {
+      // If that call was not successful, throw an error.
+      throw Exception('Failed to load post');
+    }
+  }
+
+//variant_id
+  Future<String> insertflexivariableproduct(i) async {
+    print(i);
+    print("inside insertflexivariableproduct func");
+    print("qty" + qty.toString());
+    print("pid" + widget.productid.toString());
+    print("select id");
+    print(dropDownValues.toString());
+    var id;
+    sharedPreferences = await SharedPreferences.getInstance();
+    cart_id = sharedPreferences.getString("cartid") ?? "_";
+    List index = new List();
+    for (k = 0; k < data['data']['product']['options'].length; k++) {
+      id = data['data']['product']['options'][k]['productoption_id'];
+      index.add(id);
+      print(index);
+      // print(index[i]);
+      print("k value" + k.toString());
+    }
+
+    // if (widget.producttype == "variable") {
+    print("variable prodct");
+    if (cart_id == "_") {
+      print("cart_id is null");
+
+      Map payload = {};
+
+      Map newMap = {};
+      for (k = 0; k < data['data']['product']['options'].length; k++) {
+        newMap["product_option[${index[k]}]"] = dropDownValues[k].toString();
+      }
+      payload = {
+        "product_id": widget.productid.toString(),
+        "product_qty": qty.toString(),
+        "cart_id": "",
+        "variant_id": "58"
+      };
+      payload.addAll(newMap);
+      print(payload);
+      final response = await http.post(
+        "https://w3cert.net/outfit/index.php/api/v1/cart",
+        body: payload,
+      );
+
+      print('response.body' + response.body);
+      this.setState(() {
+        data = json.decode(response.body);
+      });
+      print(data);
+      sharedPreferences = await SharedPreferences.getInstance();
+      setState(() {
+        sharedPreferences.setString("cartid", data["cart_id"].toString());
+        //sharedPreferences.commit();
+      });
+      //  });
+      navigate1();
+    } else {
+      print("cart_id have value");
+
+      sharedPreferences = await SharedPreferences.getInstance();
+
+      Map payload = {};
+      //  List payload = [];
+      Map list1 = {};
+      Map newMap = {};
+      for (k = 0; k < data['data']['product']['options'].length; k++) {
+        // id = data['data']['product']['options'][k]['product_optionvalue_id'];
+        newMap["product_option[${index[k]}]"] = dropDownValues[k].toString();
+        //     print(k);
+
+      }
+      payload = {
+        "product_id": widget.productid.toString(),
+        "product_qty": qty.toString(),
+        "cart_id": sharedPreferences.getString("cartid").toString(),
+        "variant_id": "58",
+      };
+      payload.addAll(newMap);
+      print(payload);
+      final response = await http.post(
+        "https://w3cert.net/outfit/index.php/api/v1/cart",
+        body: payload,
+      );
+      print('response.body' + response.body);
+      this.setState(() {
+        data = json.decode(response.body);
+      });
+      // print( "product_option[$id]" );
+      print(data);
+      //  print( "product_option[$id]" )
+      sharedPreferences = await SharedPreferences.getInstance();
+      setState(() {
+        sharedPreferences.setString("cartid", data["cart_id"].toString());
+        //sharedPreferences.commit();
+      });
+      // });
+// }
+      navigate1();
+    }
+  }
+
+  Future<String> insertvariableproduct(i) async {
+    print(i);
+    print("inside insertvariableproduct func");
+    print("qty" + qty.toString());
+    print("pid" + widget.productid.toString());
+    print("select id");
+    print(dropDownValues.toString());
+    var id;
+    sharedPreferences = await SharedPreferences.getInstance();
+    cart_id = sharedPreferences.getString("cartid") ?? "_";
+    List index = new List();
+    for (k = 0; k < data['data']['product']['options'].length; k++) {
+      id = data['data']['product']['options'][k]['productoption_id'];
+      index.add(id);
+      print(index);
+      // print(index[i]);
+      print("k value" + k.toString());
+    }
+
+    // if (widget.producttype == "variable") {
+    print("variable prodct");
+    if (cart_id == "_") {
+      print("cart_id is null");
+
+      Map payload = {};
+
+      Map newMap = {};
+      for (k = 0; k < data['data']['product']['options'].length; k++) {
+        newMap["product_option[${index[k]}]"] = dropDownValues[k].toString();
+      }
+      payload = {
+        "product_id": widget.productid.toString(),
+        "product_qty": qty.toString(),
+        "cart_id": "",
+      };
+      payload.addAll(newMap);
+      print(payload);
+      final response = await http.post(
+        "https://w3cert.net/outfit/index.php/api/v1/cart",
+        body: payload,
+      );
+
+      print('response.body' + response.body);
+      this.setState(() {
+        data = json.decode(response.body);
+      });
+      print(data);
+      sharedPreferences = await SharedPreferences.getInstance();
+      setState(() {
+        sharedPreferences.setString("cartid", data["cart_id"].toString());
+        //sharedPreferences.commit();
+      });
+      //  });
+      navigate1();
+    } else {
+      print("cart_id have value");
+
+      sharedPreferences = await SharedPreferences.getInstance();
+
+      Map payload = {};
+      //  List payload = [];
+      Map list1 = {};
+      Map newMap = {};
+      for (k = 0; k < data['data']['product']['options'].length; k++) {
+        // id = data['data']['product']['options'][k]['product_optionvalue_id'];
+        newMap["product_option[${index[k]}]"] = dropDownValues[k].toString();
+        //     print(k);
+
+      }
+      payload = {
+        "product_id": widget.productid.toString(),
+        "product_qty": qty.toString(),
+        "cart_id": sharedPreferences.getString("cartid").toString(),
+      };
+      payload.addAll(newMap);
+      print(payload);
+      final response = await http.post(
+        "https://w3cert.net/outfit/index.php/api/v1/cart",
+        body: payload,
+      );
+      print('response.body' + response.body);
+      this.setState(() {
+        data = json.decode(response.body);
+      });
+      // print( "product_option[$id]" );
+      print(data);
+      //  print( "product_option[$id]" )
+      sharedPreferences = await SharedPreferences.getInstance();
+      setState(() {
+        sharedPreferences.setString("cartid", data["cart_id"].toString());
+        //sharedPreferences.commit();
+      });
+      // });
+// }
+      navigate1();
+    }
+  }
+
+  Future insertsimpleproduct() async {
+    //simple product
+    print("inside insertsimpleproduct");
+    print(widget.producttype);
+    print("simple product");
+    if (cart_id == "_") {
+      print("cart_id is null");
+
+      final response = await http
+          .post("https://w3cert.net/outfit/index.php/api/v1/cart", body: {
+        'product_id': widget.productid.toString(),
+        'product_qty': qty.toString(),
+        'cart_id': ""
+      }); //.whenComplete(() => navigate());
+      print('response.body' + response.body);
+      this.setState(() {
+        data = json.decode(response.body);
+      });
+      print(data);
+      sharedPreferences = await SharedPreferences.getInstance();
+      setState(() {
+        sharedPreferences.setString("cartid", data["cart_id"].toString());
+        //sharedPreferences.commit();
+      });
+      navigate1();
+    } else {
+      print("cart_id have value");
+      sharedPreferences = await SharedPreferences.getInstance();
+      print(
+        sharedPreferences.getString("cartid").toString(),
+      );
+      final response = await http
+          .post("https://w3cert.net/outfit/index.php/api/v1/cart", body: {
+        'product_id': widget.productid.toString(),
+        'product_qty': qty.toString(),
+        'cart_id': sharedPreferences.getString("cartid").toString(),
+      });
+      print('response.body' + response.body);
+      this.setState(() {
+        data = json.decode(response.body);
+      });
+      print(data);
+
+      navigate1(); //rm yds
+    } //sproduc
+  }
+
+  getlocalstorage() async {
+    print("inside getlocalstorage");
+    sharedPreferences = await SharedPreferences.getInstance();
+    cart_id = sharedPreferences.getString("cartid").toString();
+    print(cart_id);
+  }
+
+  navigate1() async {
+    Navigator.of(context).push(new MaterialPageRoute(
+      builder: (BuildContext context) => new Cart(),
+    ));
+  }
+
+  void initState() {
+    checkproducttype();
+    //getProduct();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: scaffoldkey,
+      body: Container(
+        child: SingleChildScrollView(
+            child: new Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Center(
+              child: Form(
+                key: formKey,
+                child: new Container(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      SizedBox(
+                        height: 50.0,
+                      ),
+                      Image.network(
+                        imageURL + widget.productimage,
+                        //'${data['data']['products'][index]['main_image']}',
+                        width: 6000,
+                        height: 300,
+                      ),
+                      SizedBox(
+                        height: 20.0,
+                      ),
+                      Visibility(
+                        child: Column(children: [
+                          Container(
+                            width: 200.0,
+                            child: Column(
+                              children: [
+                                Column(children: [
+                                  for (i = 0; i < data2.length; i++)
+                                    Column(
+                                      children: [
+                                        Text(data2[i]['option_name']),
+                                        //getDropDown(options[i]['optionvalue'])
+
+                                        DropdownButtonFormField<String>(
+                                            //   value: optionValue1 != null ? optionValue1 : null,
+                                            //DropdownButton(
+                                            items: data2[i]['optionvalue']
+                                                .map<DropdownMenuItem<String>>(
+                                                    (optionValue1) {
+                                              //   print("optionValue1");
+                                              //     print(optionValue1);
+                                              print(optionValue1[
+                                                  'product_optionvalue_id']);
+                                              print('k');
+                                              //   _value = optionValue1['product_optionvalue_id'][i].toString();
+                                              //print("_value"+_value);
+                                              return DropdownMenuItem<String>(
+                                                child: Text(optionValue1[
+                                                    'optionvalue_name']),
+                                                //  value : _value,
+                                                value: optionValue1[
+                                                    'product_optionvalue_id'],
+                                                // value:optionValue1,
+                                                //    value: optionValue1['optionvalue_id'],
+                                              );
+                                            }).toList(),
+                                            validator: (String value) {
+                                              if (value?.isEmpty ?? true) {
+                                                return 'Please ${data2[i]['option_name']}';
+                                              }
+                                              return null;
+                                            },
+                                            value: dropDownValues[i],
+                                            onChanged: (newValue) {
+                                              print("newValue" + newValue);
+                                              //print("selected dropDownValues value"+selected_ddvalue[i]);
+                                              setState(() {
+                                                dropDownValues[i] = newValue;
+                                                selected_ddvalue[i] = newValue;
+                                              });
+                                              // print(dropDownValues[i]);
+                                            })
+                                      ],
+                                    )
+                                ]),
+                                // _actionDropDown(data2[i]('optionvalue'))
+                              ],
+                            ),
+                          )
+                        ]),
+                        visible: visibledropdown,
+                      ),
+                      Visibility(
+                        child: Column(children: [
+                          Container(
+                            width: 200.0,
+                            child: Column(
+                              children: [
+                                Column(children: [
+                                  for (i = 0; i < data2.length; i++)
+                                    Column(
+                                      children: [
+                                        Text(data2[i]['option_name']),
+                                        DropdownButtonFormField<String>(
+                                            items: data2[i]['optionvalue']
+                                                .map<DropdownMenuItem<String>>(
+                                                    (optionValue1) {
+                                              return DropdownMenuItem<String>(
+                                                child: Text(optionValue1[
+                                                    'optionvalue_name']),
+                                                //  value : _value,
+                                                value: optionValue1[
+                                                    'product_optionvalue_id'],
+                                              );
+                                            }).toList(),
+                                            validator: (String value) {
+                                              if (value?.isEmpty ?? true) {
+                                                return 'Please ${data2[i]['option_name']}';
+                                              }
+                                              return null;
+                                            },
+                                            value: dropDownValues[i],
+                                            onChanged: (newValue) {
+                                              setState(() {
+                                                checkvarient();
+                                                dropDownValues[i] =
+                                                    newValue; //rm cmd
+                                                //selected_ddvalue[i] = newValue; //rm cmd
+                                              });
+                                              // print(dropDownValues[i]);
+                                            }),
+                                      ],
+                                    ),
+                                  // Text(msg),
+                                  Text("hai"),
+                                ]),
+                              ],
+                            ),
+                          )
+                        ]),
+                        visible: visibleflexdropdown,
+                      ),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            //  flex: 10,
+                            child: Text(
+                              //    "divya",
+                              "Name : " +
+                                  "${data['data']['product']['product_name']}",
+                              //  "Name : " "${data['data']['product']['product_name']}",
+//"Name : " +"${data['data']['product']['options']['productoption_id']}",
+                              textAlign: TextAlign.start,
+                              style: new TextStyle(
+                                fontSize: 18.0,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                      SizedBox(
+                        height: 10.0,
+                      ),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            flex: 5,
+                            child: Text(
+                              "Description : " +
+                                  "${data['data']['product']['product_long_desc']}",
+                              style: new TextStyle(
+                                fontSize: 18.0,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                      SizedBox(
+                        height: 10.0,
+                      ),
+                      /* Row(
+                        children: <Widget>[
+                          Expanded(
+                            flex: 7,1
+                            child: Text(
+                              "Price : ₹ " + data['data']['products']['price'],
+                              style: new TextStyle(
+                                fontSize: 18.0,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                      SizedBox(
+                        height: 10.0,
+                      ),*/
+                      Row(
+                        children: <Widget>[
+                          Text(
+                            "Quantity : ",
+                            style: new TextStyle(
+                              fontSize: 18.0,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          new IconButton(
+                            icon: new Icon(Icons.remove),
+                            onPressed: () => setState(() {
+                              // qty = int.tryParse(qty.toString());
+                              qty--;
+                            }),
+                          ),
+                          new Text(
+                            qty.toString(),
+                            style: new TextStyle(
+                                fontSize: 15.0, fontWeight: FontWeight.bold),
+                          ),
+                          new IconButton(
+                            icon: new Icon(Icons.add),
+                            onPressed: () => setState(() {
+                              // qty = int.tryParse(qty.toString());
+                              qty++;
+
+                              new Text(
+                                qty.toString(),
+                                style: new TextStyle(
+                                    fontSize: 15.0,
+                                    fontWeight: FontWeight.bold),
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                      Visibility(
+                        child: new RaisedButton(
+                            child: new Text(
+                              "Add to Cart",
+                              textAlign: TextAlign.center,
+                              style: new TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700),
+                            ),
+                            color: Colors.lightBlue,
+                            onPressed: () {
+                              if (formKey.currentState.validate()) {
+                                formKey.currentState.save();
+                                checkproducttypeinsertproduct();
+                              } else {
+                                // validation error
+                                scaffoldkey.currentState.showSnackBar(SnackBar(
+                                  content: Text("Failed to Add Cart"),
+                                ));
+                                setState(() {
+                                  _validate = true;
+                                });
+                              }
+                            }),
+                        visible: displayaddtocart,
+                      ),
+                      /* new RaisedButton(
+                          child: new Text(
+                            "Add to Cart",
+                            textAlign: TextAlign.center,
+                            style: new TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700),
+                          ),
+                          color: Colors.lightBlue,
+                          onPressed: () {
+                            if (formKey.currentState.validate()) {
+                              formKey.currentState.save();
+                             checkproducttypeinsertproduct();
+                              /*  scaffoldkey.currentState.showSnackBar(SnackBar(
+                                content: Text("Add to cart"),
+                              ));*/
+                            } else {
+                              // validation error
+                              scaffoldkey.currentState.showSnackBar(SnackBar(
+                                content: Text("Failed to Add Cart"),
+                              ));
+                              setState(() {
+                                _validate = true;
+                              });
+                            }
+                          }),*/
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        )),
+      ),
+    );
+  }
+}
